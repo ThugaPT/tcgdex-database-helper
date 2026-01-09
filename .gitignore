@@ -2,9 +2,6 @@
 __pycache__/
 *.py[cod]
 
-# Virtualenv
-.venv/
-
 # Local paths / work dirs
 cards-database/
 workspace/
@@ -14,3 +11,8 @@ workspace/
 
 # VS Code
 .vscode/
+# Local configuration files
+config/config.local.yaml
+# Python virtual environment
+.venv/
+venv/

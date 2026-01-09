@@ -6,9 +6,9 @@ import unicodedata
 from collections import Counter
 
 # ---------- CONFIG ----------
-DATABASE_ROOT_EN = "cards-database/data"
-DATABASE_ROOT_JA = "cards-database/data-asia"
-OUTPUT_CSV = "illustrator-card-count.csv"
+DATABASE_ROOT_EN = "../cards-database/data"
+DATABASE_ROOT_JA = "../cards-database/data-asia"
+OUTPUT_CSV = "CSVs/illustrator-card-count.csv"
 # ----------------------------
 
 

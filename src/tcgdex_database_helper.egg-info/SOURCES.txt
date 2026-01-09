@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/tcgdex_database_helper/SSL_tcgDex-database-illustrator.py
+src/tcgdex_database_helper/__init__.py
+src/tcgdex_database_helper/__main__.py
+src/tcgdex_database_helper/config.py
+src/tcgdex_database_helper/count-cards-by-illustrator.py
+src/tcgdex_database_helper/main.py
+src/tcgdex_database_helper.egg-info/PKG-INFO
+src/tcgdex_database_helper.egg-info/SOURCES.txt
+src/tcgdex_database_helper.egg-info/dependency_links.txt
+src/tcgdex_database_helper.egg-info/requires.txt
+src/tcgdex_database_helper.egg-info/top_level.txt
