@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtualenv
+.venv/
+
+# Local paths / work dirs
+cards-database/
+workspace/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
