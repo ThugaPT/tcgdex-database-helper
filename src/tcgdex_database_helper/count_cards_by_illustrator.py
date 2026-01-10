@@ -5,17 +5,30 @@ import unicodedata
 
 from collections import Counter
 
-# ---------- CONFIG ----------
-DATABASE_ROOT_EN = "../cards-database/data"
-DATABASE_ROOT_JA = "../cards-database/data-asia"
-OUTPUT_CSV = "CSVs/illustrator-card-count.csv"
-# ----------------------------
+# illustrator_stats.py
+from pathlib import Path
+
+# ---------- CONFIG (initialized from main) ----------
+DATABASE_ROOT_EN: Path | None = None
+DATABASE_ROOT_JA: Path | None = None
+OUTPUT_CSV: Path | None = None
+# -----------------------------------------------
 
 
 ILLUSTRATOR_REGEX = re.compile(
     r"illustrator\s*:\s*['\"](.+?)['\"]",
     re.IGNORECASE
 )
+
+def configure_count_cards_by_illustrator(
+    database_root_en: Path,
+    database_root_ja: Path,
+    output_csv: Path,
+):
+    global DATABASE_ROOT_EN, DATABASE_ROOT_JA, OUTPUT_CSV
+    DATABASE_ROOT_EN = database_root_en
+    DATABASE_ROOT_JA = database_root_ja
+    OUTPUT_CSV = output_csv
 
 def normalize_illustrator(name: str) -> str:
     # Normalize unicode (important for JP / full-width chars)
@@ -52,7 +65,7 @@ def extract_illustrator(file_path: str) -> str | None:
     return normalize_illustrator(match.group(1))
 
 
-def main():
+def run_count_cards_by_illustrator():
     counter = Counter()
     counter_ja = Counter()
     total_files = 0
@@ -60,6 +73,10 @@ def main():
     with_illustrator = 0
     with_illustrator_ja = 0
 
+    ##LOAD GLOBALS
+    assert DATABASE_ROOT_EN is not None, "Module not configured"
+    assert OUTPUT_CSV is not None, "Module not configured"
+    
     for file_path_en in iter_ts_files(DATABASE_ROOT_EN):
         total_files += 1
         illustrator = extract_illustrator(file_path_en)
@@ -113,5 +130,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run()
 
