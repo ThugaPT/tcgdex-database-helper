@@ -5,7 +5,6 @@ import unicodedata
 
 from collections import Counter
 
-# illustrator_stats.py
 from pathlib import Path
 
 # ---------- CONFIG (initialized from main) ----------
@@ -23,12 +22,12 @@ ILLUSTRATOR_REGEX = re.compile(
 def configure_count_cards_by_illustrator(
     database_root_en: Path,
     database_root_ja: Path,
-    output_csv: Path,
+    illustrator_csv: Path,
 ):
     global DATABASE_ROOT_EN, DATABASE_ROOT_JA, OUTPUT_CSV
     DATABASE_ROOT_EN = database_root_en
     DATABASE_ROOT_JA = database_root_ja
-    OUTPUT_CSV = output_csv
+    OUTPUT_CSV = illustrator_csv
 
 def normalize_illustrator(name: str) -> str:
     # Normalize unicode (important for JP / full-width chars)
@@ -130,5 +129,5 @@ def run_count_cards_by_illustrator():
 
 
 if __name__ == "__main__":
-    run()
+    run_count_cards_by_illustrator()
 

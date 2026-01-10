@@ -12,15 +12,36 @@ import requests
 from PIL import Image, ImageTk
 from tcgdexsdk import TCGdex
 
+from pathlib import Path
 
 # ---------- CONFIG ----------
-LANGUAGE = "en"
-DATABASE_ROOT = "cards-database/data"
-ILLUSTRATOR_CSV = "illustrator-card-count.csv"
-MAX_RETRIES = 3
-AUTOCOMPLETE_MIN_CHARS = 3
+LANGUAGE: str | None = None
+DATABASE_ROOT: Path | None = None
+ILLUSTRATOR_CSV: Path | None = None
+MAX_RETRIES: int | None = None
+AUTOCOMPLETE_MIN_CHARS: int | None = None
+
 # ----------------------------
 
+#Config_Loading#
+def configure_tcgDex_database_helper_GUI(
+    database_root_en: Path,
+    database_root_ja: Path,
+    illustrator_csv: Path,
+    max_retries: int,
+    autocomplete_min_chars: int,
+    language: str,
+):
+    global LANGUAGE, DATABASE_ROOT, ILLUSTRATOR_CSV, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS
+    if language == "en":
+            DATABASE_ROOT = database_root_en
+    if language == "ja":
+            DATABASE_ROOT = database_root_ja
+    LANGUAGE = language
+    ILLUSTRATOR_CSV = illustrator_csv
+    MAX_RETRIES = max_retries
+    AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars
+#------------------#
 
 # ---------- NORMALIZATION ----------
 def normalize_illustrator(name: str) -> str:
@@ -341,5 +362,8 @@ class CardInspectorApp(tk.Tk):
 
 
 # ---------- RUN ----------
+def run_tcgDex_database_helper_GUI():
+    CardInspectorApp().mainloop()
+    
 if __name__ == "__main__":
     CardInspectorApp().mainloop()
