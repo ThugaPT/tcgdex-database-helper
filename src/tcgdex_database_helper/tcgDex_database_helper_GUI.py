@@ -195,7 +195,10 @@ class CardInspectorApp(tk.Tk):
         self.missing_cards.clear()
         self.current_index = 0
 
-        for file in sorted(os.listdir(path), key=lambda x: int(x.split(".")[0])):
+        for file in sorted(
+            os.listdir(path),
+            key=lambda x: int(x.split(".")[0]) if x.split(".")[0].isdigit() else float("inf")
+        ):
             if not file.endswith(".ts"):
                 continue
 
