@@ -7,6 +7,7 @@ import unicodedata
 import tkinter as tk
 from tkinter import ttk, messagebox
 from io import BytesIO
+from threading import Thread
 
 import requests
 from PIL import Image, ImageTk
@@ -41,6 +42,8 @@ def configure_tcgDex_database_helper_GUI(
     ILLUSTRATOR_CSV = illustrator_csv
     MAX_RETRIES = max_retries
     AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars
+    print("USING DATABASE ROOT:", DATABASE_ROOT)
+    print("USING LANGUAGE:", LANGUAGE)
 #------------------#
 
 # ---------- NORMALIZATION ----------
@@ -49,7 +52,7 @@ def normalize_illustrator(name: str) -> str:
     name = name.strip()
     name = re.sub(r"\s+", " ", name)
     return name
-
+# -------------------------------
 
 # ---------- ASYNC SDK ----------
 async def fetch_series():
@@ -67,11 +70,14 @@ async def fetch_card(card_id):
 
 
 class CardInspectorApp(tk.Tk):
-    def __init__(self):
+    def __init__(self, api):
         super().__init__()
 
         self.title("TCGDex Illustrator Editor")
         self.geometry("480x260")
+
+        # Store the API instance
+        self.api = api
 
         self.series_var = tk.StringVar()
         self.set_var = tk.StringVar()
@@ -82,12 +88,25 @@ class CardInspectorApp(tk.Tk):
         self.missing_cards = []
         self.current_index = 0
 
-        self.possible_illustrators = set()
-        self.load_possible_illustrators()
-
         self.create_widgets()
-        self.load_series()
+        # Note: don't call load_series here directly
+        # We'll call it from top-level async function with await
+    # ---------- ASYNC LOAD DATA ----------
+    async def load_series_async(self):
+        series = await self.api.serie.list()
+        for s in series:
+            self.series_map[s.name] = s.id
+        self.series_cb["values"] = sorted(self.series_map.keys())
 
+    async def load_sets_async(self, series_name):
+        series_id = self.series_map[series_name]
+        sets = await self.api.serie.get(series_id)
+        self.set_map = {s.name: s.id for s in sets.sets}
+        self.set_cb["values"] = sorted(self.set_map.keys())
+
+    async def fetch_card_async(self, card_id):
+        return await self.api.card.get(card_id)
+    
     # ---------- LOAD CSV ----------
     def load_possible_illustrators(self):
         if not os.path.exists(ILLUSTRATOR_CSV):
@@ -135,12 +154,33 @@ class CardInspectorApp(tk.Tk):
         self.set_cb.set("")
         self.scan_btn["state"] = "disabled"
         self.set_cb["state"] = "readonly"
+        series_name = self.series_var.get()
+        series_id = self.series_map[series_name]
+        # run async function in separate thread
+        def worker():
+            import asyncio
+            series_obj = asyncio.run(self.api.serie.get(series_id))
+            sets_dict = {s.name: s.id for s in series_obj.sets}
+            self.after(0, self._update_set_combobox, sets_dict)
 
-        series_id = self.series_map[self.series_var.get()]
-        sets = asyncio.run(fetch_sets(series_id))
+        Thread(target=worker, daemon=True).start()
 
-        self.set_map = {s.name: s.id for s in sets}
+#    async def _load_sets_for_gui(self):
+#        try:
+#            series_name = self.series_var.get()
+#            series_id = self.series_map[series_name]
+#            series_obj = await self.api.serie.get(series_id)
+#            sets_dict = {s.name: s.id for s in series_obj.sets}
+#            return sets_dict
+#        except Exception as e:
+#            print("Error loading sets:", e)
+
+    def _update_set_combobox(self, sets_dict):
+        self.set_map = sets_dict
         self.set_cb["values"] = sorted(self.set_map.keys())
+        # Force the combobox to refresh
+        self.set_cb["state"] = "readonly"
+        
 
     def on_set_selected(self, _):
         self.scan_btn["state"] = "normal"
@@ -362,8 +402,15 @@ class CardInspectorApp(tk.Tk):
 
 
 # ---------- RUN ----------
-def run_tcgDex_database_helper_GUI():
-    CardInspectorApp().mainloop()
+async def run_tcgDex_database_helper_GUI_async():
+    api = TCGdex(LANGUAGE)  # Initialize API once
+    app = CardInspectorApp(api)
+    
+    # Load series before showing GUI
+    await app.load_series_async()
+    
+    # Now run Tkinter mainloop
+    app.mainloop()
     
 if __name__ == "__main__":
     CardInspectorApp().mainloop()

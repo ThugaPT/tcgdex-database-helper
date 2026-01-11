@@ -1,4 +1,5 @@
 def main():
+    import asyncio
     from tcgdex_database_helper.config import load_config
     from tcgdex_database_helper.count_cards_by_illustrator import (
     configure_count_cards_by_illustrator,
@@ -6,7 +7,7 @@ def main():
     )
     from tcgdex_database_helper.tcgDex_database_helper_GUI import (
     configure_tcgDex_database_helper_GUI,
-    run_tcgDex_database_helper_GUI,
+    run_tcgDex_database_helper_GUI_async,
     )
     #LOAD AND SET CONFIGS
     config = load_config()
@@ -18,7 +19,7 @@ def main():
         database_root_ja=paths["database_root_ja"],
         illustrator_csv=paths["illustrator_csv"],
     )
-    language = "EN" #To be fetched from a helper GUI on startup
+    language = "en" #To be fetched from CLI on start
 
     configure_tcgDex_database_helper_GUI(
         database_root_en=paths["database_root_en"],
@@ -29,4 +30,4 @@ def main():
         language=language,
     )
     run_count_cards_by_illustrator()
-    run_tcgDex_database_helper_GUI()
+    asyncio.run(run_tcgDex_database_helper_GUI_async())
