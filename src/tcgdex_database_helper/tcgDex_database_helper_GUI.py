@@ -12,6 +12,8 @@ from threading import Thread
 import requests
 from PIL import Image, ImageTk
 from tcgdexsdk import TCGdex
+from tcgdex_database_helper.config import get_language
+
 
 from pathlib import Path
 
@@ -31,14 +33,13 @@ def configure_tcgDex_database_helper_GUI(
     illustrator_csv: Path,
     max_retries: int,
     autocomplete_min_chars: int,
-    language: str,
 ):
-    global LANGUAGE, DATABASE_ROOT, ILLUSTRATOR_CSV, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS
-    if language == "en":
+    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS
+    if get_language() == "en":
             DATABASE_ROOT = database_root_en
-    if language == "ja":
+    if get_language() == "ja":
             DATABASE_ROOT = database_root_ja
-    LANGUAGE = language
+    LANGUAGE = get_language()
     ILLUSTRATOR_CSV = illustrator_csv
     MAX_RETRIES = max_retries
     AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars

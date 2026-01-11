@@ -6,6 +6,15 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT_DIR / "config"
 DEFAULT_CONFIG = CONFIG_DIR / "config.yaml"
 LOCAL_CONFIG = CONFIG_DIR / "config.local.yaml"
+LANGUAGE = "en"
+
+
+def set_language(lang: str):
+    global LANGUAGE
+    LANGUAGE = lang
+
+def get_language() -> str:
+    return LANGUAGE
 
 
 def load_config() -> dict:
