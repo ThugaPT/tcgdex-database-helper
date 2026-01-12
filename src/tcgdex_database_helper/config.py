@@ -7,7 +7,7 @@ CONFIG_DIR = ROOT_DIR / "config"
 DEFAULT_CONFIG = CONFIG_DIR / "config.yaml"
 LOCAL_CONFIG = CONFIG_DIR / "config.local.yaml"
 LANGUAGE = "en"
-
+NO_SSL_VERIFY = False
 
 def set_language(lang: str):
     global LANGUAGE
@@ -16,6 +16,12 @@ def set_language(lang: str):
 def get_language() -> str:
     return LANGUAGE
 
+def set_no_ssl_verify(verify: bool):
+    global NO_SSL_VERIFY
+    NO_SSL_VERIFY = verify
+
+def get_no_ssl_verify() -> bool:
+    return NO_SSL_VERIFY
 
 def load_config() -> dict:
     print("Loading configs...")

@@ -6,7 +6,7 @@ def main():
     from tcgdex_database_helper.config import (
         load_config,
         set_language,
-        get_language,
+        set_no_ssl_verify,
     )
     from tcgdex_database_helper.count_cards_by_illustrator import (
     configure_count_cards_by_illustrator,
@@ -27,20 +27,29 @@ def main():
             default=None,
             help="Language code to use (en or ja), if not set, uses en by default",
         )
+        parser.add_argument(
+            "-nsl", "--no_ssl_verify",
+            action="store_true",
+            help="Disable SSL verification",
+        )
 
         return parser.parse_args()
     
     
     args = parse_args()
-    if args.language and args.language in ["en", "ja"]:
+    if args.language:
+        if args.language in ["en", "ja"]:
             set_language(args.language)
             if args.language == "ja":
                 print("Japanese Language not yet supported")
                 return
-    else:
-         print("No valid language specified, please use --lang or -l with 'en' or 'ja'")
-         return
+        else:
+            print("No valid language specified, please use --lang or -l with 'en' or 'ja'")
+            return
     
+    if args.no_ssl_verify:
+        set_no_ssl_verify(True)
+
     #LOAD AND SET CONFIGS
     config = load_config()
     paths = config["paths"]

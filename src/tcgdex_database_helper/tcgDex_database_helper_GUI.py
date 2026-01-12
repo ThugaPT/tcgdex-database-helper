@@ -2,6 +2,7 @@ import os
 import re
 import csv
 import asyncio
+import ssl
 import time
 import unicodedata
 import tkinter as tk
@@ -12,7 +13,7 @@ from threading import Thread
 import requests
 from PIL import Image, ImageTk
 from tcgdexsdk import TCGdex
-from tcgdex_database_helper.config import get_language
+from tcgdex_database_helper.config import get_language, get_no_ssl_verify
 
 
 from pathlib import Path
@@ -23,7 +24,7 @@ DATABASE_ROOT: Path | None = None
 ILLUSTRATOR_CSV: Path | None = None
 MAX_RETRIES: int | None = None
 AUTOCOMPLETE_MIN_CHARS: int | None = None
-
+NO_SSL_VERIFICATION: bool = None
 # ----------------------------
 
 #Config_Loading#
@@ -34,7 +35,7 @@ def configure_tcgDex_database_helper_GUI(
     max_retries: int,
     autocomplete_min_chars: int,
 ):
-    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS
+    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION
     if get_language() == "en":
             DATABASE_ROOT = database_root_en
     if get_language() == "ja":
@@ -43,6 +44,7 @@ def configure_tcgDex_database_helper_GUI(
     ILLUSTRATOR_CSV = illustrator_csv
     MAX_RETRIES = max_retries
     AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars
+    NO_SSL_VERIFICATION = get_no_ssl_verify()
     print("USING DATABASE ROOT:", DATABASE_ROOT)
     print("USING LANGUAGE:", LANGUAGE)
 #------------------#
@@ -88,6 +90,9 @@ class CardInspectorApp(tk.Tk):
 
         self.missing_cards = []
         self.current_index = 0
+        if NO_SSL_VERIFICATION:
+            print("Disabling SSL verification for requests")
+            ssl._create_default_https_context = ssl._create_unverified_context
 
         self.create_widgets()
         # Note: don't call load_series here directly
@@ -235,8 +240,11 @@ class CardInspectorApp(tk.Tk):
 
         # ---------- IMAGE ----------
         img_url = card.get_image_url(quality="high", extension="png")
+        if NO_SSL_VERIFICATION:
+            r = requests.get(img_url, timeout=30, verify=False)
+        else:
+            r = requests.get(img_url, timeout=30)
 
-        r = requests.get(img_url, timeout=30)
         image = Image.open(BytesIO(r.content)).resize((600, 840))
         photo = ImageTk.PhotoImage(image)
 
