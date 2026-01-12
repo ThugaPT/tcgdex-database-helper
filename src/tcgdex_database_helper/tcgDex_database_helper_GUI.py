@@ -90,6 +90,11 @@ class CardInspectorApp(tk.Tk):
 
         self.missing_cards = []
         self.current_index = 0
+        self.card: TCGdex.card.Card | None = None
+
+        self.possible_illustrators = set()
+        self.load_possible_illustrators()
+
         if NO_SSL_VERIFICATION:
             print("Disabling SSL verification for requests")
             ssl._create_default_https_context = ssl._create_unverified_context
@@ -232,14 +237,23 @@ class CardInspectorApp(tk.Tk):
             return
 
         path, card_id = self.missing_cards[self.current_index]
-        card = asyncio.run(fetch_card(card_id))
+        # run async function in separate thread
+        def worker():
+            import asyncio
+            self.card = asyncio.run(self.fetch_card_async(card_id))
+            #self.after(0, self._update_set_combobox, sets_dict)
+
+        get_card_thread = Thread(target=worker, daemon=True)
+        get_card_thread.start()
+        get_card_thread.join() 
+        #card = asyncio.run(fetch_card(card_id))
 
         editor = tk.Toplevel(self)
-        editor.title(card.name)
+        editor.title(self.card.name)
         editor.geometry("760x1000")
 
         # ---------- IMAGE ----------
-        img_url = card.get_image_url(quality="high", extension="png")
+        img_url = self.card.get_image_url(quality="high", extension="png")
         if NO_SSL_VERIFICATION:
             r = requests.get(img_url, timeout=30, verify=False)
         else:
