@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tcgdex_database_helper"
 version = "0.1.0"
-description = "Helper scripts for cards-database"
+description = "Helper app for cards-database completing"
 authors = [
-    { name = "Your Name" }
+    { name = "ThugaPT" }
 ]
 dependencies = ["pyyaml"]
 

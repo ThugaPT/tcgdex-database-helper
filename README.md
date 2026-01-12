@@ -23,5 +23,4 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 
-#export CARDS_DATABASE_PATH=../cards-database
 python -m tcgdex_database_helper
