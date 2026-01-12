@@ -50,3 +50,5 @@ python -m tcgdex_database_helper [-h] [-l LANGUAGE] [-nsl]
 #                        Disable SSL verification - NOT RECOMMENDED, but for some networks it's required
 
 ```
+## Result
+The changes produced by the helper are on the files in your local clone of the cards-database fork, to have them in your repository(and after done, in the main repository via a pull request) don't forget to commit and push.

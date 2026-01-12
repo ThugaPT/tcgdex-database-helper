@@ -1,8 +1,8 @@
 paths:
   cards_database: ../cards_database
-  database_root_en: ../cards_database/data
-  database_root_ja: ../cards_database/data-asia
-  illustrator_csv: ./CSVs/illustrator_card_count.csv
+  database_root_en: ../cards-database/data
+  database_root_ja: ../cards-database/data-asia
+  illustrator_csv: ./src/tcgdex_database_helper/CSVs/illustrator_card_count.csv
 runtime_settings:
  max_retries: 3
  autocomplete_min_chars: 3
