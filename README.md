@@ -1,12 +1,11 @@
 ```markdown
 # tcgdex-database-helper
 Helper tool to process and update the TCGdex cards database
-
+```
 ## Requirements
 
 - Python 3.10 or newer
 - A local clone of the `cards-database` repository (see below)
-
 ## Setup
 
 ```bash
