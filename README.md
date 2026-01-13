@@ -15,8 +15,9 @@ cd workspace
 ##Clone the project, or download it from GIT to the workspace folder
 ##git clone https://github.com/ThugaPT/tcgdex-database-helper.git
 ##Follow the steps to contribute to https://github.com/tcgdex/cards-database.git
+##  Usually creating a fork into your own repository
 ##Clone your fork of the cards-database to the root of the workspace folder
-##git clone https://github.com/[you]/cards-database.git
+##git clone https://github.com/[your_repository]/cards-database.git
 
 
 cd tcgdex-database-helper
