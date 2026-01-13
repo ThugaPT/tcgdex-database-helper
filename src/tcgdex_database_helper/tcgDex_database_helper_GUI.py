@@ -174,7 +174,10 @@ class CardInspectorApp(tk.Tk):
        
         self.missing_cards.clear()
         self.current_index = 0
-
+        ##Add a check to see if path exists
+        if not os.path.exists(path):
+            messagebox.showerror("Error", f"Path does not exist: {path}\nThe cards from the selected set ({set_id}/{set_name}) from the selected series({series_id}/{series}) may not have been added yet.")
+            return
         for file in sorted(
             os.listdir(path),
             key=lambda x: int(x.split(".")[0]) if x.split(".")[0].isdigit() else float("inf")
