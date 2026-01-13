@@ -16,3 +16,4 @@ config/config.local.yaml
 # Python virtual environment
 .venv/
 venv/
+src/tcgdex_database_helper/CSVs/illustrator_card_count.csv

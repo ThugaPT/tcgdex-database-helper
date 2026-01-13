@@ -22,6 +22,7 @@ from pathlib import Path
 LANGUAGE: str | None = None
 DATABASE_ROOT: Path | None = None
 ILLUSTRATOR_CSV: Path | None = None
+FALLBACK_IMAGE_PATH: Path | None = None
 MAX_RETRIES: int | None = None
 AUTOCOMPLETE_MIN_CHARS: int | None = None
 NO_SSL_VERIFICATION: bool = None
@@ -32,16 +33,18 @@ def configure_tcgDex_database_helper_GUI(
     database_root_en: Path,
     database_root_ja: Path,
     illustrator_csv: Path,
+    fallback_image: Path,
     max_retries: int,
     autocomplete_min_chars: int,
 ):
-    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION
+    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, FALLBACK_IMAGE_PATH, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION
     if get_language() == "en":
             DATABASE_ROOT = database_root_en
     if get_language() == "ja":
             DATABASE_ROOT = database_root_ja
     LANGUAGE = get_language()
     ILLUSTRATOR_CSV = illustrator_csv
+    FALLBACK_IMAGE_PATH = fallback_image
     MAX_RETRIES = max_retries
     AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars
     NO_SSL_VERIFICATION = get_no_ssl_verify()
@@ -57,21 +60,7 @@ def normalize_illustrator(name: str) -> str:
     return name
 # -------------------------------
 
-# ---------- ASYNC SDK ----------
-async def fetch_series():
-    return await TCGdex(LANGUAGE).serie.list()
-
-
-async def fetch_sets(series_id):
-    series = await TCGdex(LANGUAGE).serie.get(series_id)
-    return series.sets
-
-
-async def fetch_card(card_id):
-    return await TCGdex(LANGUAGE).card.get(card_id)
-# ----------------------------
-
-
+# ---------- GUI APP ----------
 class CardInspectorApp(tk.Tk):
     def __init__(self, api):
         super().__init__()
@@ -87,6 +76,7 @@ class CardInspectorApp(tk.Tk):
 
         self.series_map = {}
         self.set_map = {}
+        self.series_obj = None
 
         self.missing_cards = []
         self.current_index = 0
@@ -168,30 +158,21 @@ class CardInspectorApp(tk.Tk):
         series_name = self.series_var.get()
         series_id = self.series_map[series_name]
         # run async function in separate thread
+        
+        # Create and launch thread to fetch series data
         def worker():
             import asyncio
-            series_obj = asyncio.run(self.api.serie.get(series_id))
-            sets_dict = {s.name: s.id for s in series_obj.sets}
-            self.after(0, self._update_set_combobox, sets_dict)
+            self.series_obj = asyncio.run(self.api.serie.get(series_id))
+        series_selected_thread = Thread(target=worker, daemon=True)
+        series_selected_thread.start()
+        series_selected_thread.join()
 
-        Thread(target=worker, daemon=True).start()
-
-#    async def _load_sets_for_gui(self):
-#        try:
-#            series_name = self.series_var.get()
-#            series_id = self.series_map[series_name]
-#            series_obj = await self.api.serie.get(series_id)
-#            sets_dict = {s.name: s.id for s in series_obj.sets}
-#            return sets_dict
-#        except Exception as e:
-#            print("Error loading sets:", e)
-
-    def _update_set_combobox(self, sets_dict):
+        #Fill sets combobox
+        sets_dict = {s.name: s.id for s in self.series_obj.sets}
         self.set_map = sets_dict
         self.set_cb["values"] = sorted(self.set_map.keys())
         # Force the combobox to refresh
-        self.set_cb["state"] = "readonly"
-        
+        self.set_cb["state"] = "readonly"        
 
     def on_set_selected(self, _):
         self.scan_btn["state"] = "normal"
@@ -200,8 +181,15 @@ class CardInspectorApp(tk.Tk):
     def start_scan(self):
         series = self.series_var.get()
         set_name = self.set_var.get()
-        path = os.path.join(DATABASE_ROOT, series, set_name)
-
+        set_id = self.set_map[set_name]
+        series_id = self.series_map[series]
+        if LANGUAGE == "ja":
+            path = os.path.join(DATABASE_ROOT, series_id, set_id)
+        if LANGUAGE == "en":
+            path = os.path.join(DATABASE_ROOT, series, set_name)
+        #DEBUG
+        print("Scanning path for set:", path)
+        
         self.missing_cards.clear()
         self.current_index = 0
 
@@ -247,21 +235,37 @@ class CardInspectorApp(tk.Tk):
         get_card_thread.start()
         get_card_thread.join() 
         #card = asyncio.run(fetch_card(card_id))
-
+        print("Editing card:", self.card)
         editor = tk.Toplevel(self)
         editor.title(self.card.name)
         editor.geometry("760x1000")
 
         # ---------- IMAGE ----------
         img_url = self.card.get_image_url(quality="high", extension="png")
-        if NO_SSL_VERIFICATION:
-            r = requests.get(img_url, timeout=30, verify=False)
+        image = None
+        r = None
+        try:
+            if NO_SSL_VERIFICATION:
+                r = requests.get(img_url, timeout=30, verify=False)
+            else:
+                r = requests.get(img_url, timeout=30)
+        except Exception as e:
+            print(f"⚠️ Could not load image for card {self.card.name} from {img_url} with error: {e}")
+        if r is not None and r.content is not None and r.status_code == 200:
+            image = Image.open(BytesIO(r.content)).resize((600, 840))
         else:
-            r = requests.get(img_url, timeout=30)
+            if not FALLBACK_IMAGE_PATH.exists():
+                raise FileNotFoundError(
+                    f"Fallback image not found: {FALLBACK_IMAGE_PATH}"
+                )
+            else:
+                messagebox.showerror(
+                    "Image Load Error",
+                    f"Could not load image for card {self.card.name} ."
+                )
+                image = Image.open(FALLBACK_IMAGE_PATH).resize((600, 840))
 
-        image = Image.open(BytesIO(r.content)).resize((600, 840))
-        photo = ImageTk.PhotoImage(image)
-
+        photo = ImageTk.PhotoImage(image) 
         img_label = ttk.Label(editor, image=photo)
         img_label.image = photo
         img_label.pack(pady=10)

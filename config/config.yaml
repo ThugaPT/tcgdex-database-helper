@@ -3,6 +3,7 @@ paths:
   database_root_en: ../cards-database/data
   database_root_ja: ../cards-database/data-asia
   illustrator_csv: ./src/tcgdex_database_helper/CSVs/illustrator_card_count.csv
+  fallback_image: ./assets/images/fallback_card.png
 runtime_settings:
  max_retries: 3
  autocomplete_min_chars: 3

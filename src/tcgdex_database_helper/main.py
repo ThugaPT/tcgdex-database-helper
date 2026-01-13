@@ -41,8 +41,7 @@ def main():
         if args.language in ["en", "ja"]:
             set_language(args.language)
             if args.language == "ja":
-                print("Japanese Language not yet supported")
-                return
+                print("Japanese Language not fully supported as many cards and sets are missing from TCGDex database.")
         else:
             print("No valid language specified, please use --lang or -l with 'en' or 'ja'")
             return
@@ -54,7 +53,7 @@ def main():
     config = load_config()
     paths = config["paths"]
     runtime_settings = config["runtime_settings"]
-    print(config)
+    #print(config)
     configure_count_cards_by_illustrator(
         database_root_en=paths["database_root_en"],
         database_root_ja=paths["database_root_ja"],
@@ -64,6 +63,7 @@ def main():
         database_root_en=paths["database_root_en"],
         database_root_ja=paths["database_root_ja"],
         illustrator_csv=paths["illustrator_csv"],
+        fallback_image=paths["fallback_image"],
         max_retries=runtime_settings["max_retries"],
         autocomplete_min_chars=runtime_settings["autocomplete_min_chars"],
     )
