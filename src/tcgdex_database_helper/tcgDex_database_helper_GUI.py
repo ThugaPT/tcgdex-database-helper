@@ -3,7 +3,6 @@ import re
 import csv
 import asyncio
 import ssl
-import time
 import unicodedata
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -48,8 +47,6 @@ def configure_tcgDex_database_helper_GUI(
     MAX_RETRIES = max_retries
     AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars
     NO_SSL_VERIFICATION = get_no_ssl_verify()
-    print("USING DATABASE ROOT:", DATABASE_ROOT)
-    print("USING LANGUAGE:", LANGUAGE)
 #------------------#
 
 # ---------- NORMALIZATION ----------
@@ -90,20 +87,13 @@ class CardInspectorApp(tk.Tk):
             ssl._create_default_https_context = ssl._create_unverified_context
 
         self.create_widgets()
-        # Note: don't call load_series here directly
-        # We'll call it from top-level async function with await
+
     # ---------- ASYNC LOAD DATA ----------
     async def load_series_async(self):
         series = await self.api.serie.list()
         for s in series:
             self.series_map[s.name] = s.id
         self.series_cb["values"] = sorted(self.series_map.keys())
-
-    async def load_sets_async(self, series_name):
-        series_id = self.series_map[series_name]
-        sets = await self.api.serie.get(series_id)
-        self.set_map = {s.name: s.id for s in sets.sets}
-        self.set_cb["values"] = sorted(self.set_map.keys())
 
     async def fetch_card_async(self, card_id):
         return await self.api.card.get(card_id)
@@ -145,12 +135,6 @@ class CardInspectorApp(tk.Tk):
         self.scan_btn.pack(pady=25)
 
     # ---------- DATA ----------
-    def load_series(self):
-        series = asyncio.run(fetch_series())
-        for s in series:
-            self.series_map[s.name] = s.id
-        self.series_cb["values"] = sorted(self.series_map.keys())
-
     def on_series_selected(self, _):
         self.set_cb.set("")
         self.scan_btn["state"] = "disabled"
@@ -159,7 +143,7 @@ class CardInspectorApp(tk.Tk):
         series_id = self.series_map[series_name]
         # run async function in separate thread
         
-        # Create and launch thread to fetch series data
+        # Create, launch and wait on a thread to fetch series data
         def worker():
             import asyncio
             self.series_obj = asyncio.run(self.api.serie.get(series_id))
@@ -187,9 +171,7 @@ class CardInspectorApp(tk.Tk):
             path = os.path.join(DATABASE_ROOT, series_id, set_id)
         if LANGUAGE == "en":
             path = os.path.join(DATABASE_ROOT, series, set_name)
-        #DEBUG
-        print("Scanning path for set:", path)
-        
+       
         self.missing_cards.clear()
         self.current_index = 0
 
@@ -225,25 +207,24 @@ class CardInspectorApp(tk.Tk):
             return
 
         path, card_id = self.missing_cards[self.current_index]
-        # run async function in separate thread
+        # Create, launch and wait on a thread to fetch card data
         def worker():
             import asyncio
             self.card = asyncio.run(self.fetch_card_async(card_id))
-            #self.after(0, self._update_set_combobox, sets_dict)
 
         get_card_thread = Thread(target=worker, daemon=True)
         get_card_thread.start()
         get_card_thread.join() 
-        #card = asyncio.run(fetch_card(card_id))
-        print("Editing card:", self.card)
+
         editor = tk.Toplevel(self)
         editor.title(self.card.name)
         editor.geometry("760x1000")
 
         # ---------- IMAGE ----------
-        img_url = self.card.get_image_url(quality="high", extension="png")
         image = None
         r = None
+        img_url = self.card.get_image_url(quality="high", extension="png")
+
         try:
             if NO_SSL_VERIFICATION:
                 r = requests.get(img_url, timeout=30, verify=False)
@@ -251,6 +232,7 @@ class CardInspectorApp(tk.Tk):
                 r = requests.get(img_url, timeout=30)
         except Exception as e:
             print(f"⚠️ Could not load image for card {self.card.name} from {img_url} with error: {e}")
+        
         if r is not None and r.content is not None and r.status_code == 200:
             image = Image.open(BytesIO(r.content)).resize((600, 840))
         else:

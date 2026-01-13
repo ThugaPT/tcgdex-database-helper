@@ -53,7 +53,7 @@ def main():
     config = load_config()
     paths = config["paths"]
     runtime_settings = config["runtime_settings"]
-    #print(config)
+
     configure_count_cards_by_illustrator(
         database_root_en=paths["database_root_en"],
         database_root_ja=paths["database_root_ja"],

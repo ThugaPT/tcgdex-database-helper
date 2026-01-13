@@ -42,7 +42,7 @@ def normalize_illustrator(name: str) -> str:
     return name
 
 def iter_ts_files(root: str):
-    """Yield full paths to all .ts files under root."""
+    #Yield full paths to all .ts files under root.
     for dirpath, _, filenames in os.walk(root):
         for name in filenames:
             if name.endswith(".ts"):
@@ -66,11 +66,8 @@ def extract_illustrator(file_path: str) -> str | None:
 
 def run_count_cards_by_illustrator():
     counter = Counter()
-    counter_ja = Counter()
     total_files = 0
-    total_files_ja = 0
     with_illustrator = 0
-    with_illustrator_ja = 0
 
     ##LOAD GLOBALS
     assert DATABASE_ROOT_EN is not None, "Module not configured"
@@ -101,32 +98,12 @@ def run_count_cards_by_illustrator():
 
         for illustrator, count in counter.most_common():
             writer.writerow([illustrator, count])
-  
-
-    #for illustrator_en in counter_en:
-    #    exists_both = False;
-    #    for illustrator_ja in counter_ja:
-    #        if illustrator_en == illustrator_ja:
-    #            exists_both = True
-    #    if exists_both==False:
-    #        print(f"Illustrator EN does not exist in JA: {illustrator_en}")
-    #for illustrator_ja in counter_ja:
-    #    exists_both = False;
-    #    for illustrator_en in counter_en:
-    #        if illustrator_en == illustrator_ja:
-    #            exists_both = True
-    #    if exists_both==False:
-    #        print(f"Illustrator JA does not exist in EN: {illustrator_ja}")
-
+    
     print("✅ Done")
     print(f"📁 Total card files scanned: {total_files}")
     print(f"🎨 Cards with illustrator: {with_illustrator}")
     print(f"📊 Unique illustrators: {len(counter)}")
-    #print(f"📁 Total card files scanned JA: {total_files_ja}")
-    #print(f"🎨 Cards with illustrator JA: {with_illustrator_ja}")
-    #print(f"📊 Unique illustrators JA: {len(counter_ja)}")
     print(f"💾 Output written to: {OUTPUT_CSV}")
-
 
 if __name__ == "__main__":
     run_count_cards_by_illustrator()
