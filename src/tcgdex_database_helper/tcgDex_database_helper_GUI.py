@@ -388,16 +388,33 @@ class CardInspectorApp(tk.Tk):
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        indent = re.search(r"\n(\s*)rarity\s*:", content).group(1)
-        insert = f"\n{indent}illustrator: \"{illustrator}\","
+        # 1️⃣ Locate rarity and indentation
+        rarity_match = re.search(r"\n(\s*)rarity\s*:", content)
+        if not rarity_match:
+            messagebox.showerror("Error", "Could not locate rarity field")
+            return
 
-        content = re.sub(
-            r"\n\s*\n(\s*rarity\s*:)",
-            insert + r"\n\1",
-            content,
-            count=1
-        )
+        indent = rarity_match.group(1)
+        illustrator_line = f'\n{indent}illustrator: "{illustrator}",'
 
+        # 2️⃣ If illustrator already exists → overwrite it
+        if re.search(r"\n\s*illustrator\s*:\s*['\"].*?['\"],?", content):
+            content = re.sub(
+                r"\n(\s*)illustrator\s*:\s*['\"].*?['\"],?",
+                f"\n{illustrator_line}",
+                content,
+                count=1
+            )
+        # 3️⃣ Otherwise → insert illustrator before rarity
+        else:
+            content = re.sub(
+                r"\n(\s*rarity\s*:)",
+                f"\n{illustrator_line}\n\\1",
+                content,
+                count=1
+            )
+
+        # 4️⃣ Write file back
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
 
