@@ -408,7 +408,7 @@ class CardInspectorApp(tk.Tk):
     # ---------- UTIL ----------
     @staticmethod
     def missing_illustrator(content):
-        return not re.search(r"illustrator\s*:", content)
+        return not re.search(r"illustrator\s*:", content) or re.search(r"illustrator\s*:\s*['\"]\s*['\"]", content)
 
     @staticmethod
     def extract_card_id(content, set_id, filename):
