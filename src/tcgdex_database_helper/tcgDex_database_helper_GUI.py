@@ -14,8 +14,10 @@ from PIL import Image, ImageTk
 from tcgdexsdk import TCGdex
 from tcgdex_database_helper.config import get_language, get_no_ssl_verify
 
-
 from pathlib import Path
+
+#Screen position
+from screeninfo import get_monitors
 
 # ---------- CONFIG ----------
 LANGUAGE: str | None = None
@@ -25,6 +27,16 @@ FALLBACK_IMAGE_PATH: Path | None = None
 MAX_RETRIES: int | None = None
 AUTOCOMPLETE_MIN_CHARS: int | None = None
 NO_SSL_VERIFICATION: bool = None
+SCREEN_CHOOSE = 1
+#WINDOW_LOCATION = "top-left"
+#WINDOW_LOCATION = "top-mid"
+#WINDOW_LOCATION = "top-right" #error
+#WINDOW_LOCATION = "center-left"
+#WINDOW_LOCATION = "center-mid"
+#WINDOW_LOCATION = "center-right"
+WINDOW_LOCATION = "bottom-left"
+#WINDOW_LOCATION = "bottom-mid"
+#WINDOW_LOCATION = "bottom-right"
 # ----------------------------
 
 #Config_Loading#
@@ -87,6 +99,8 @@ class CardInspectorApp(tk.Tk):
             ssl._create_default_https_context = ssl._create_unverified_context
 
         self.create_widgets()
+        self.position_window()
+
 
     # ---------- ASYNC LOAD DATA ----------
     async def load_series_async(self):
@@ -222,6 +236,8 @@ class CardInspectorApp(tk.Tk):
         editor = tk.Toplevel(self)
         editor.title(self.card.name)
         editor.geometry("760x1000")
+        
+        editor.after_idle(lambda: self.position_window(editor))
 
         # ---------- IMAGE ----------
         image = None
@@ -346,7 +362,7 @@ class CardInspectorApp(tk.Tk):
                 state="normal" if illustrator_var.get().strip() else "disabled"
             )
         )
-
+    
     # ---------- ACTIONS ----------
     def skip_card(self, editor):
         editor.destroy()
@@ -432,15 +448,69 @@ class CardInspectorApp(tk.Tk):
         match = re.search(r"id\s*:\s*['\"](.+?)['\"]", content)
         return match.group(1) if match else f"{set_id}-{filename.replace('.ts','')}"
 
+    def position_window(self, win=None):
+        try:
+            monitors = get_monitors()
+            if not monitors:
+                return
+            if win is None:
+                win = self
+            screen_index = min(SCREEN_CHOOSE, len(monitors) - 1)
+            m = monitors[screen_index]
+
+            win.update_idletasks()
+
+            win_w = win.winfo_width()
+            win_h = win.winfo_height()
+
+            # ---- Virtual desktop origin (CRITICAL) ----
+            virtual_y_top = m.y - m.height
+
+            # Convert monitor coords → Tk coords
+            mon_x = m.x 
+            mon_y = virtual_y_top
+            mon_w = m.width
+            mon_h = m.height
+
+            loc = WINDOW_LOCATION.lower()
+
+            # ---- Horizontal ----
+            if loc.endswith("left"):
+                x = mon_x
+            elif loc.endswith("mid"):
+                x = mon_x + (mon_w - win_w) // 2
+            elif loc.endswith("right"):
+                x = mon_x + mon_w - win_w
+            else:
+                return
+
+            # ---- Vertical ----
+            if loc.startswith("top"):
+                y = mon_y
+            elif loc.startswith("center"):
+                #y = mon_y + (mon_h // 2) - (win_h // 2)
+                y = (mon_h // 2) + mon_y + (win_h)
+            elif loc.startswith("bottom"):
+                y = mon_y + mon_h + m.y - (win_h // 2)
+            else:
+                return
+
+            print(f"Final window position: x={x}, y={y}")
+            win.geometry(f"+{x}+{y}")
+
+        except Exception as e:
+            print("Window positioning failed:", e)
+
 
 # ---------- RUN ----------
 async def run_tcgDex_database_helper_GUI_async():
-    api = TCGdex(LANGUAGE)  # Initialize API once
+# Initialize API once
+    api = TCGdex(LANGUAGE)
     app = CardInspectorApp(api)
-    
+
     # Load series before showing GUI
     await app.load_series_async()
-    
+
     # Now run Tkinter mainloop
     app.mainloop()
     
