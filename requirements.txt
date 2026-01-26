@@ -19,6 +19,7 @@ pytz==2025.2
 PyYAML==6.0.3
 reportlab==4.4.7
 requests==2.32.4
+screeninfo==0.8.1
 selenium==4.34.2
 six==1.17.0
 sniffio==1.3.1

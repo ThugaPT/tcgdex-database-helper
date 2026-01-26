@@ -27,16 +27,16 @@ FALLBACK_IMAGE_PATH: Path | None = None
 MAX_RETRIES: int | None = None
 AUTOCOMPLETE_MIN_CHARS: int | None = None
 NO_SSL_VERIFICATION: bool = None
-SCREEN_CHOOSE = 1
+SCREEN_CHOOSE = 1  # 0 for primary monitor, 1 for secondary, etc.
 #WINDOW_LOCATION = "top-left"
 #WINDOW_LOCATION = "top-mid"
-#WINDOW_LOCATION = "top-right" #error
+WINDOW_LOCATION = "top-right"
 #WINDOW_LOCATION = "center-left"
 #WINDOW_LOCATION = "center-mid"
 #WINDOW_LOCATION = "center-right"
-WINDOW_LOCATION = "bottom-left"
-#WINDOW_LOCATION = "bottom-mid"
-#WINDOW_LOCATION = "bottom-right"
+#WINDOW_LOCATION = "bottom-left"  #wrong at home 1 Y
+#WINDOW_LOCATION = "bottom-mid"   #wrong at home 1 Y
+#WINDOW_LOCATION = "bottom-right" #wrong at home 1 Y
 # ----------------------------
 
 #Config_Loading#
@@ -237,7 +237,7 @@ class CardInspectorApp(tk.Tk):
         editor.title(self.card.name)
         editor.geometry("760x1000")
         
-        editor.after_idle(lambda: self.position_window(editor))
+        
 
         # ---------- IMAGE ----------
         image = None
@@ -270,7 +270,7 @@ class CardInspectorApp(tk.Tk):
         img_label = ttk.Label(editor, image=photo)
         img_label.image = photo
         img_label.pack(pady=10)
-
+        editor.after_idle(lambda: self.position_window(editor))
         # ---------- INPUT ----------
         ttk.Label(editor, text="Illustrator").pack(pady=(10, 5))
 
@@ -448,55 +448,80 @@ class CardInspectorApp(tk.Tk):
         match = re.search(r"id\s*:\s*['\"](.+?)['\"]", content)
         return match.group(1) if match else f"{set_id}-{filename.replace('.ts','')}"
 
-    def position_window(self, win=None):
+    def position_window(self, win=None): #TODO: FIX ISSUE ON Y AND X AXIS FOR MONITORS WITH X OR Y NEGATIVE COORDS
         try:
             monitors = get_monitors()
+            PMwidth, PMheight = 0,0
             if not monitors:
                 return
             if win is None:
                 win = self
             screen_index = min(SCREEN_CHOOSE, len(monitors) - 1)
             m = monitors[screen_index]
-
+            from screeninfo import Enumerator
+            for mon in get_monitors(Enumerator.OSX):
+                if mon.is_primary:
+                    PMwidth = mon.width
+                    PMheight = mon.height
+                print(str(mon), " Monitor list!")
+            
             win.update_idletasks()
 
             win_w = win.winfo_width()
             win_h = win.winfo_height()
 
-            # ---- Virtual desktop origin (CRITICAL) ----
-            virtual_y_top = m.y - m.height
-
             # Convert monitor coords → Tk coords
-            mon_x = m.x 
-            mon_y = virtual_y_top
             mon_w = m.width
             mon_h = m.height
-
+            mon_x = m.x
+            mon_y = m.y
+            print(f"Primary Monitor: w={PMwidth}, h={PMheight}")
+            print(f"Monitor {screen_index}: x={m.x}, y={m.y}, w={mon_w}, h={mon_h}")
+            print(f"Window size: w={win_w}, h={win_h}")
             loc = WINDOW_LOCATION.lower()
 
             # ---- Horizontal ----
             if loc.endswith("left"):
-                x = mon_x
+                if mon_x >= 0:
+                    x = PMwidth - mon_w
+                else:
+                    x = mon_x
             elif loc.endswith("mid"):
-                x = mon_x + (mon_w - win_w) // 2
+                if mon_x >= 0:
+                    x = (mon_w // 2) + (PMwidth - mon_w) - (win_w // 2)
+                else:
+                    x = mon_x + (mon_w // 2) - (win_w // 2)
             elif loc.endswith("right"):
-                x = mon_x + mon_w - win_w
+                if mon_x >= 0:
+                    x = mon_w + (PMwidth - mon_w) - win_w
+                else:
+                    x = mon_x + mon_w - win_w
             else:
                 return
 
             # ---- Vertical ----
             if loc.startswith("top"):
-                y = mon_y
+                if mon_y >= 0:
+                    y = PMheight - mon_h
+                else:
+                    y = PMheight + mon_y
             elif loc.startswith("center"):
-                #y = mon_y + (mon_h // 2) - (win_h // 2)
-                y = (mon_h // 2) + mon_y + (win_h)
+                if mon_y >= 0:
+                    y = (mon_h // 2) + (PMheight - mon_h) - (win_h // 2)
+                else:
+                    y = PMheight - mon_y - (win_h // 2) - (mon_h // 2)
             elif loc.startswith("bottom"):
-                y = mon_y + mon_h + m.y - (win_h // 2)
+                if mon_y >= 0:
+                    y = mon_h + (PMheight - mon_h) - win_h
+                else:
+                    y = PMheight - mon_y - win_h
             else:
                 return
 
+            #y=PMheight - mon_y - win_h
             print(f"Final window position: x={x}, y={y}")
             win.geometry(f"+{x}+{y}")
+            ##win.geometry(f"+0+0")
 
         except Exception as e:
             print("Window positioning failed:", e)
