@@ -14,6 +14,9 @@ from PIL import Image, ImageTk
 from tcgdexsdk import TCGdex
 from tcgdex_database_helper.config import get_language, get_no_ssl_verify
 
+#limitless fallback
+from urllib.parse import quote_plus
+from bs4 import BeautifulSoup
 
 from pathlib import Path
 
@@ -56,7 +59,79 @@ def normalize_illustrator(name: str) -> str:
     name = re.sub(r"\s+", " ", name)
     return name
 # -------------------------------
+# --------LIMITLESS FETCH---------
+def slugify_for_limitless(text: str) -> str:
+    """
+    Normalize text for Limitless search usage.
+    """
+    text = unicodedata.normalize("NFKD", text)
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^\w\s-]", "", text).strip().lower()
+    return re.sub(r"\s+", "-", text)
 
+
+def fetch_limitless_card_image(card_name: str, set_name: str | None = None) -> Image.Image | None:
+    """
+    Fetch a card image from Limitless TCG.
+    Returns a PIL.Image or None.
+    """
+    print("fetch_limitless_card_image -> card_name: ", card_name)
+    print("fetch_limitless_card_image -> set_name: ", set_name)
+    try:
+        search_query = quote_plus(card_name)
+        search_url = f"https://limitlesstcg.com/cards?q={search_query}"
+        print("fetch_limitless_card_image -> search_url: ", search_url)
+        r = requests.get(search_url, timeout=20)
+        if r.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        # First card result
+        card_link = soup.select_one("a.card-image-link")
+        if not card_link:
+            return None
+
+        card_url = "https://limitlesstcg.com" + card_link.get("href")
+
+        r_card = requests.get(card_url, timeout=20)
+        if r_card.status_code != 200:
+            return None
+
+        soup_card = BeautifulSoup(r_card.text, "html.parser")
+
+        img_tag = soup_card.select_one("img.card-image")
+        if not img_tag:
+            return None
+
+        img_url = img_tag.get("src")
+        if not img_url:
+            return None
+
+        # Some images are protocol-relative
+        if img_url.startswith("//"):
+            img_url = "https:" + img_url
+
+        r_img = requests.get(img_url, timeout=20)
+        if r_img.status_code != 200:
+            return None
+
+        return Image.open(BytesIO(r_img.content)).resize((600, 840))
+
+    except Exception as e:
+        print(f"⚠️ Limitless fallback failed: {e}")
+        return None
+
+
+def get_limitless_fallback_image(card) -> Image.Image | None:
+    """
+    Wrapper used by the GUI.
+    """
+    print("get_limitless_fallback_image -> card: ", card)
+    return fetch_limitless_card_image(
+        card_name=card.name,
+        set_name=getattr(card, "set", None)
+    )
 # ---------- GUI APP ----------
 class CardInspectorApp(tk.Tk):
     def __init__(self, api):
@@ -226,6 +301,7 @@ class CardInspectorApp(tk.Tk):
         # ---------- IMAGE ----------
         image = None
         r = None
+        #Main source of images is TCGDex
         img_url = self.card.get_image_url(quality="high", extension="png")
 
         try:
@@ -239,17 +315,26 @@ class CardInspectorApp(tk.Tk):
         if r is not None and r.content is not None and r.status_code == 200:
             image = Image.open(BytesIO(r.content)).resize((600, 840))
         else:
-            if not FALLBACK_IMAGE_PATH.exists():
-                raise FileNotFoundError(
-                    f"Fallback image not found: {FALLBACK_IMAGE_PATH}"
-                )
-            else:
-                messagebox.showerror(
-                    "Image Load Error",
-                    f"Could not load image for card {self.card.name} ."
-                )
-                image = Image.open(FALLBACK_IMAGE_PATH).resize((600, 840))
-
+            #Image could not be loaded, use fallbacks
+            #THIS IS LIMITLESS FALLBACK
+            #image = call to some function that fetches from limitless
+            print("try limitless fallback")
+            image = get_limitless_fallback_image(self.card)
+            
+            #if the call to the function that fetches from limitless fails
+            #go to the below lines for the FALLBACK_IMAGE_PATH image, no need for else, as if it does not enter the if it goes to '#DISPLAY IMAGE IN TKINTER'
+            if image is None:
+                if not FALLBACK_IMAGE_PATH.exists():
+                    raise FileNotFoundError(
+                        f"Fallback image not found: {FALLBACK_IMAGE_PATH}"
+                    )
+                else:
+                    messagebox.showerror(
+                        "Image Load Error",
+                        f"Could not load image for card {self.card.name} ."
+                    )
+                    image = Image.open(FALLBACK_IMAGE_PATH).resize((600, 840))
+        #DISPLAY IMAGE IN TKINTER
         photo = ImageTk.PhotoImage(image) 
         img_label = ttk.Label(editor, image=photo)
         img_label.image = photo
