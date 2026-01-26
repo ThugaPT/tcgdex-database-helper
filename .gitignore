@@ -19,3 +19,4 @@ venv/
 src/tcgdex_database_helper/CSVs/illustrator_card_count.csv
 #Standalone helper scripts are not to be tracked
 src/tcgdex_database_helper/helper_local_scripts/
+attacks/
