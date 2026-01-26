@@ -8,6 +8,7 @@ DEFAULT_CONFIG = CONFIG_DIR / "config.yaml"
 LOCAL_CONFIG = CONFIG_DIR / "config.local.yaml"
 LANGUAGE = "en"
 NO_SSL_VERIFY = False
+IS_LOCAL_ENDPOINT = False
 
 def set_language(lang: str):
     global LANGUAGE
@@ -22,6 +23,13 @@ def set_no_ssl_verify(verify: bool):
 
 def get_no_ssl_verify() -> bool:
     return NO_SSL_VERIFY
+
+def set_is_local_endpoint(is_local: bool):
+    global IS_LOCAL_ENDPOINT
+    IS_LOCAL_ENDPOINT = is_local
+
+def get_is_local_endpoint() -> bool:
+    return IS_LOCAL_ENDPOINT
 
 def load_config() -> dict:
     print("Loading configs...")
