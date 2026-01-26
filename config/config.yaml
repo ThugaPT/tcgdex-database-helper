@@ -7,3 +7,5 @@ paths:
 runtime_settings:
  max_retries: 3
  autocomplete_min_chars: 3
+endpoints:
+ local_enpoint: "http://localhost:3000/v2"

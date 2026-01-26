@@ -12,7 +12,7 @@ from threading import Thread
 import requests
 from PIL import Image, ImageTk
 from tcgdexsdk import TCGdex
-from tcgdex_database_helper.config import get_language, get_no_ssl_verify
+from tcgdex_database_helper.config import get_language, get_no_ssl_verify, get_is_local_endpoint
 
 
 from pathlib import Path
@@ -25,6 +25,8 @@ FALLBACK_IMAGE_PATH: Path | None = None
 MAX_RETRIES: int | None = None
 AUTOCOMPLETE_MIN_CHARS: int | None = None
 NO_SSL_VERIFICATION: bool = None
+IS_LOCAL_ENDPOINT: bool | None = None
+LOCAL_ENDPOINT: str | None = None
 # ----------------------------
 
 #Config_Loading#
@@ -35,8 +37,9 @@ def configure_tcgDex_database_helper_GUI(
     fallback_image: Path,
     max_retries: int,
     autocomplete_min_chars: int,
+    local_endpoint: str,
 ):
-    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, FALLBACK_IMAGE_PATH, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION
+    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, FALLBACK_IMAGE_PATH, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION, LOCAL_ENDPOINT
     if get_language() == "en":
             DATABASE_ROOT = database_root_en
     if get_language() == "ja":
@@ -47,6 +50,9 @@ def configure_tcgDex_database_helper_GUI(
     MAX_RETRIES = max_retries
     AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars
     NO_SSL_VERIFICATION = get_no_ssl_verify()
+    IS_LOCAL_ENDPOINT = get_is_local_endpoint()
+    LOCAL_ENDPOINT = local_endpoint
+
 #------------------#
 
 # ---------- NORMALIZATION ----------
@@ -435,7 +441,10 @@ class CardInspectorApp(tk.Tk):
 
 # ---------- RUN ----------
 async def run_tcgDex_database_helper_GUI_async():
-    api = TCGdex(LANGUAGE)  # Initialize API once
+# Initialize API once
+    api = TCGdex(LANGUAGE)
+    if IS_LOCAL_ENDPOINT:
+        api = api.setEndpoint(LOCAL_ENDPOINT) ## Use local TCGdex instance
     app = CardInspectorApp(api)
     
     # Load series before showing GUI
