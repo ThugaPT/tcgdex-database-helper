@@ -20,3 +20,5 @@ src/tcgdex_database_helper/CSVs/illustrator_card_count.csv
 #Standalone helper scripts are not to be tracked
 src/tcgdex_database_helper/helper_local_scripts/
 attacks/
+pokemon_attacks_registry.csv
+series_sets_release_dates.csv
