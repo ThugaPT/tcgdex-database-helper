@@ -7,6 +7,7 @@ def main():
         load_config,
         set_language,
         set_no_ssl_verify,
+        set_is_local_endpoint,
     )
     from tcgdex_database_helper.count_cards_by_illustrator import (
     configure_count_cards_by_illustrator,
@@ -32,6 +33,11 @@ def main():
             action="store_true",
             help="Disable SSL verification",
         )
+        parser.add_argument(
+            "-local",
+            action="store_true",
+            help="Enable Usage of local API instance(configurable in the config file if not default)",
+        )
 
         return parser.parse_args()
     
@@ -48,11 +54,15 @@ def main():
     
     if args.no_ssl_verify:
         set_no_ssl_verify(True)
+    
+    if args.local:
+        set_is_local_endpoint(True)
 
     #LOAD AND SET CONFIGS
     config = load_config()
     paths = config["paths"]
     runtime_settings = config["runtime_settings"]
+    endpoints = config["endpoints"]
 
     configure_count_cards_by_illustrator(
         database_root_en=paths["database_root_en"],
@@ -66,6 +76,8 @@ def main():
         fallback_image=paths["fallback_image"],
         max_retries=runtime_settings["max_retries"],
         autocomplete_min_chars=runtime_settings["autocomplete_min_chars"],
+        local_endpoint=endpoints["local_enpoint"]
+
     )
     run_count_cards_by_illustrator()
     asyncio.run(run_tcgDex_database_helper_GUI_async())
