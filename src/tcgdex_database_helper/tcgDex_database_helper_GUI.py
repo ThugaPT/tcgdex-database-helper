@@ -39,7 +39,7 @@ def configure_tcgDex_database_helper_GUI(
     autocomplete_min_chars: int,
     local_endpoint: str,
 ):
-    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, FALLBACK_IMAGE_PATH, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION, LOCAL_ENDPOINT
+    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, FALLBACK_IMAGE_PATH, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION, IS_LOCAL_ENDPOINT, LOCAL_ENDPOINT
     if get_language() == "en":
             DATABASE_ROOT = database_root_en
     if get_language() == "ja":
