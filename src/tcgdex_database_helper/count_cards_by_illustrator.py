@@ -15,7 +15,8 @@ OUTPUT_CSV: Path | None = None
 
 
 ILLUSTRATOR_REGEX = re.compile(
-    r"illustrator\s*:\s*['\"](.+?)['\"]",
+    #r"illustrator\s*:\s*['\"](.+?)['\"]",
+    r'illustrator\s*:\s*"((?:\\.|[^"])*)"',
     re.IGNORECASE
 )
 
@@ -60,8 +61,11 @@ def extract_illustrator(file_path: str) -> str | None:
     match = ILLUSTRATOR_REGEX.search(content)
     if not match:
         return None
-
-    return normalize_illustrator(match.group(1))
+    raw = match.group(1)
+    #illustrator = bytes(raw, "utf-8").decode("unicode_escape")
+    illustrator = raw
+    return normalize_illustrator(illustrator)
+    #return normalize_illustrator(match.group(1))
 
 
 def run_count_cards_by_illustrator():

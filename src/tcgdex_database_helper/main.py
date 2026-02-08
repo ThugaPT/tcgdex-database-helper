@@ -17,6 +17,10 @@ def main():
     configure_tcgDex_database_helper_GUI,
     run_tcgDex_database_helper_GUI_async,
     )
+    from tcgdex_database_helper.tcgDex_database_helper_GUI_retreat import (
+    configure_tcgDex_database_helper_GUI_RC,
+    run_tcgDex_database_helper_GUI_async_RC,
+    )
     def parse_args():
         parser = argparse.ArgumentParser(
             description="TCGDex Database Helper GUI"
@@ -37,6 +41,12 @@ def main():
             "-local",
             action="store_true",
             help="Enable Usage of local API instance(configurable in the config file if not default)",
+        )
+        parser.add_argument(
+            "-m", "--mode",
+            dest="mode",
+            default=1,
+            help="Code for illustrators or retreat_cost",
         )
 
         return parser.parse_args()
@@ -63,13 +73,26 @@ def main():
     paths = config["paths"]
     runtime_settings = config["runtime_settings"]
     endpoints = config["endpoints"]
-
-    configure_count_cards_by_illustrator(
-        database_root_en=paths["database_root_en"],
-        database_root_ja=paths["database_root_ja"],
-        illustrator_csv=paths["illustrator_csv"],
-    )
-    configure_tcgDex_database_helper_GUI(
+    if args.mode == '1':
+        configure_count_cards_by_illustrator(
+            database_root_en=paths["database_root_en"],
+            database_root_ja=paths["database_root_ja"],
+            illustrator_csv=paths["illustrator_csv"],
+        )
+        configure_tcgDex_database_helper_GUI(
+            database_root_en=paths["database_root_en"],
+            database_root_ja=paths["database_root_ja"],
+            illustrator_csv=paths["illustrator_csv"],
+            fallback_image=paths["fallback_image"],
+            max_retries=runtime_settings["max_retries"],
+            autocomplete_min_chars=runtime_settings["autocomplete_min_chars"],
+            local_endpoint=endpoints["local_enpoint"],
+            mode = "Illustrators"
+        )
+        run_count_cards_by_illustrator()
+        asyncio.run(run_tcgDex_database_helper_GUI_async())
+    elif args.mode == '2':     
+        configure_tcgDex_database_helper_GUI_RC(
         database_root_en=paths["database_root_en"],
         database_root_ja=paths["database_root_ja"],
         illustrator_csv=paths["illustrator_csv"],
@@ -77,7 +100,10 @@ def main():
         max_retries=runtime_settings["max_retries"],
         autocomplete_min_chars=runtime_settings["autocomplete_min_chars"],
         local_endpoint=endpoints["local_enpoint"]
-
-    )
-    run_count_cards_by_illustrator()
-    asyncio.run(run_tcgDex_database_helper_GUI_async())
+        )
+        asyncio.run(run_tcgDex_database_helper_GUI_async_RC())
+    else:
+        print("UNKNOWN MODE: ", args.mode)
+        return
+    #run_count_cards_by_illustrator()
+    #asyncio.run(run_tcgDex_database_helper_GUI_async_RC())

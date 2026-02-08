@@ -30,11 +30,10 @@ AUTOCOMPLETE_MIN_CHARS: int | None = None
 NO_SSL_VERIFICATION: bool = None
 IS_LOCAL_ENDPOINT: bool | None = None
 LOCAL_ENDPOINT: str | None = None
-MODE: str = None
 # ----------------------------
 
 #Config_Loading#
-def configure_tcgDex_database_helper_GUI(
+def configure_tcgDex_database_helper_GUI_RC(
     database_root_en: Path,
     database_root_ja: Path,
     illustrator_csv: Path,
@@ -42,22 +41,20 @@ def configure_tcgDex_database_helper_GUI(
     max_retries: int,
     autocomplete_min_chars: int,
     local_endpoint: str,
-    mode: str
 ):
-    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, FALLBACK_IMAGE_PATH, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION, IS_LOCAL_ENDPOINT, LOCAL_ENDPOINT, MODE
+    global DATABASE_ROOT, LANGUAGE, ILLUSTRATOR_CSV, FALLBACK_IMAGE_PATH, MAX_RETRIES, AUTOCOMPLETE_MIN_CHARS, NO_SSL_VERIFICATION, IS_LOCAL_ENDPOINT, LOCAL_ENDPOINT
     if get_language() == "en":
             DATABASE_ROOT = database_root_en
     if get_language() == "ja":
             DATABASE_ROOT = database_root_ja
     LANGUAGE = get_language()
-    ILLUSTRATOR_CSV = illustrator_csv
+    #ILLUSTRATOR_CSV = illustrator_csv
     FALLBACK_IMAGE_PATH = fallback_image
     MAX_RETRIES = max_retries
     AUTOCOMPLETE_MIN_CHARS = autocomplete_min_chars
     NO_SSL_VERIFICATION = get_no_ssl_verify()
     IS_LOCAL_ENDPOINT = get_is_local_endpoint()
     LOCAL_ENDPOINT = local_endpoint
-    MODE = mode
 
 #------------------#
 
@@ -92,13 +89,13 @@ def fetch_limitless_card_image(language: str, card_number: str, set_id: str | No
 
         if r.status_code != 200:
             return None
-        #print(r.content)
+        print(r.content)
         soup = BeautifulSoup(r.text, "html.parser")
         
         # First card result
         r_img = None
         img_url = soup.find_all("div", class_="card-search-grid")[0].find_all("a")[0].find_all("img")[0].attrs["src"] #TODO: FUGLY
-        #print("Search_div: ", img_url)
+        print("Search_div: ", img_url)
         if NO_SSL_VERIFICATION:
             r_img = requests.get(img_url, timeout=20, verify=False)
         else:
@@ -129,7 +126,7 @@ class CardInspectorApp(tk.Tk):
     def __init__(self, api):
         super().__init__()
 
-        self.title("TCGDex Illustrator Editor")
+        self.title("TCGDex Retreat Cost Editor")
         self.geometry("480x260")
 
         # Store the API instance
@@ -147,8 +144,7 @@ class CardInspectorApp(tk.Tk):
         self.card: TCGdex.card.Card | None = None
 
         self.possible_illustrators = set()
-        if MODE == "Illustrators":
-            self.load_possible_illustrators()
+        #self.load_possible_illustrators()
 
         if NO_SSL_VERIFICATION:
             print("Disabling SSL verification for requests")
@@ -167,7 +163,7 @@ class CardInspectorApp(tk.Tk):
         return await self.api.card.get(card_id)
     
     # ---------- LOAD CSV ----------
-    def load_possible_illustrators(self):
+    '''def load_possible_illustrators(self):
         if not os.path.exists(ILLUSTRATOR_CSV):
             messagebox.showwarning(
                 "Warning",
@@ -181,7 +177,7 @@ class CardInspectorApp(tk.Tk):
                 name = row.get("Illustrator")
                 if name:
                     self.possible_illustrators.add(normalize_illustrator(name))
-
+    '''
     # ---------- UI ----------
     def create_widgets(self):
         ttk.Label(self, text="Series").pack(pady=(20, 5))
@@ -194,18 +190,9 @@ class CardInspectorApp(tk.Tk):
         self.set_cb.pack(fill="x", padx=20)
         self.set_cb.bind("<<ComboboxSelected>>", self.on_set_selected)
 
-        #MODE VARIABLES
-        scanButtonLabel = None
-        match MODE:
-            case "Illustrators":
-                scanButtonLabel= "Start illustrator review"
-            case _:
-                print("Unknown mode")
-                return
-
         self.scan_btn = ttk.Button(
             self,
-            text=scanButtonLabel,
+            text="Start RC review",
             state="disabled",
             command=self.start_scan
         )
@@ -265,30 +252,25 @@ class CardInspectorApp(tk.Tk):
             full = os.path.join(path, file)
             with open(full, "r", encoding="utf-8") as f:
                 content = f.read()
-            if MODE == "Illustrators":
-                if self.missing_illustrator(content):
-                    card_id = self.extract_card_id(
-                        content=content,
-                        set_id=self.set_map[self.set_var.get()],
-                        filename=file
-                    )
-                    print("CARD: ", content)
-                    self.missing_cards.append((full, card_id))
-            
-        if MODE == "Illustrators":
-            noMissingText = "No cards missing illustrator 🎉"
+
+            if self.missing_retreat(content):
+                card_id = self.extract_card_id(
+                    content=content,
+                    set_id=self.set_map[self.set_var.get()],
+                    filename=file
+                )
+                self.missing_cards.append((full, card_id))
+
         if not self.missing_cards:
-            messagebox.showinfo("Done", noMissingText)
+            messagebox.showinfo("Done", "No cards missing retreat_cost 🎉")
             return
-        self.open_card_editor(mode= MODE)
+
+        self.open_card_editor()
 
     # ---------- CARD EDITOR ----------
-    def open_card_editor(self, mode):
-        completeMessageText = None
-        if mode == "Illustrators":
-            completeMessageText = "All missing illustrators processed 🎉"
+    def open_card_editor(self):
         if self.current_index >= len(self.missing_cards):
-            messagebox.showinfo("Done", completeMessageText)
+            messagebox.showinfo("Done", "All missing retreat_costs processed 🎉")
             return
 
         path, card_id = self.missing_cards[self.current_index]
@@ -306,7 +288,7 @@ class CardInspectorApp(tk.Tk):
         get_card_thread.join() 
         if self.card is None:
             self.current_index += 1
-            return self.open_card_editor(mode = mode)
+            return self.open_card_editor()
 
         editor = tk.Toplevel(self)
         editor.title(self.card.name)
@@ -328,28 +310,13 @@ class CardInspectorApp(tk.Tk):
         
         if r is not None and r.content is not None and r.status_code == 200:
             image = Image.open(BytesIO(r.content)).resize((600, 840))
-        elif image is None:
-            #------JUST A PLACEHOLDER FOR IMAGES LOCALLY----
-            img_path = self.card.get_image_local(quality="high", extension="png")
-            print("IMAGE URL: ", img_path)
-            if  img_path and img_path.startswith("/"):
-                #img_path = img_path.replace("/high.png", ".png")
-                print("IMAGE URL AFTER REPLACE: ", img_path)
-                local_path = os.path.normpath(img_path)
-                try:
-                    image = Image.open(local_path).resize((600, 840))
-                except Exception as e:
-                    print(f"Could not open image at path {img_path} from local repository for card ID: {self.card.id} with error: [{e}]")
-            #--------REMOVE AFTER TESTS---------    
-#            messagebox.showerror(f"Could not get image from primary source for card id {self.card.id} from set {self.card.set}\n Tried using URL: {img_url}")
+        else:
             #Image could not be loaded, use fallbacks
             #THIS IS LIMITLESS FALLBACK
             #image = call to some function that fetches from limitless
-            ##Limitless is disabled for the time being as we only want local or tcgDex assets images
-            '''if image is None:
-                print("try limitless fallback")
-                image = get_limitless_fallback_image(LANGUAGE, self.card)
-            '''
+            print("try limitless fallback")
+            image = get_limitless_fallback_image(LANGUAGE, self.card)
+            
             #if the call to the function that fetches from limitless fails
             #go to the below lines for the FALLBACK_IMAGE_PATH image, no need for else, as if it does not enter the if it goes to '#DISPLAY IMAGE IN TKINTER'
             if image is None:
@@ -372,117 +339,113 @@ class CardInspectorApp(tk.Tk):
         img_label.pack(pady=10)
 
         # ---------- INPUT ----------
-        #TODO: Put this all inside an if with the mode and replicate for Retreat Cost and for CardEditor
-        if mode == "Illustrators":
-            ttk.Label(editor, text="Illustrator").pack(pady=(10, 5))
+        ttk.Label(editor, text="Retreat ").pack(pady=(10, 5))
 
-            input_frame = ttk.Frame(editor)
-            input_frame.pack(fill="x", padx=20)
+        input_frame = ttk.Frame(editor)
+        input_frame.pack(fill="x", padx=20)
 
-            illustrator_var = tk.StringVar()
-            entry = ttk.Entry(input_frame, textvariable=illustrator_var)
-            entry.pack(side="left", fill="x", expand=True)
-            entry.focus_set()
+        illustrator_var = tk.StringVar()
+        entry = ttk.Entry(input_frame, textvariable=illustrator_var)
+        entry.pack(side="left", fill="x", expand=True)
+        entry.focus_set()
 
-            skip_btn = ttk.Button(
-                input_frame,
-                text="Skip",
-                command=lambda: self.skip_card(editor, mode)
-            )
-            skip_btn.pack(side="left", padx=(10, 10))
+        skip_btn = ttk.Button(
+            input_frame,
+            text="Skip",
+            command=lambda: self.skip_card(editor)
+        )
+        skip_btn.pack(side="left", padx=(10, 10))
 
-            save_btn = ttk.Button(
-                input_frame,
-                text="Save",
-                state="disabled",
-                command=lambda: self.validate_and_save(editor, path, illustrator_var.get())
-            )
-            save_btn.pack(side="right")
+        save_btn = ttk.Button(
+            input_frame,
+            text="Save",
+            state="disabled",
+            command=lambda: self.validate_and_save(editor, path, illustrator_var.get())
+        )
+        save_btn.pack(side="right")
 
-            # ---------- AUTOCOMPLETE ----------
-            listbox = tk.Listbox(editor, height=6)
-            listbox.place_forget()
+        # ---------- AUTOCOMPLETE ----------
+        listbox = tk.Listbox(editor, height=6)
+        listbox.place_forget()
 
-            def update_autocomplete(*_):
-                text = illustrator_var.get()
-                listbox.delete(0, tk.END)
+        def update_autocomplete(*_):
+            text = illustrator_var.get()
+            listbox.delete(0, tk.END)
 
-                if len(text) < AUTOCOMPLETE_MIN_CHARS:
-                    listbox.place_forget()
-                    return
-
-                text_norm = normalize_illustrator(text).lower()
-
-                starts = []
-                contains = []
-
-                for name in self.possible_illustrators:
-                    n = name.lower()
-                    if n.startswith(text_norm):
-                        starts.append(name)
-                    elif text_norm in n:
-                        contains.append(name)
-
-                matches = sorted(starts) + sorted(contains)
-
-                if not matches:
-                    listbox.place_forget()
-                    return
-
-                for name in matches:
-                    listbox.insert(tk.END, name)
-
-                x = entry.winfo_rootx() - editor.winfo_rootx()
-                y = entry.winfo_rooty() - editor.winfo_rooty() + entry.winfo_height()
-                listbox.place(x=x, y=y, width=entry.winfo_width())
-
-            def accept_selection(index=0):
-                if listbox.size() == 0:
-                    return
-                illustrator_var.set(listbox.get(index))
+            if len(text) < AUTOCOMPLETE_MIN_CHARS:
                 listbox.place_forget()
-                entry.focus_set()
-                entry.icursor(tk.END)
+                return
 
-            illustrator_var.trace_add("write", update_autocomplete)
+            text_norm = normalize_illustrator(text).lower()
 
-            entry.bind("<Down>", lambda e: listbox.focus_set() if listbox.winfo_ismapped() else None)
-            entry.bind("<Tab>", lambda e: (accept_selection(0), "break")[1] if listbox.winfo_ismapped() else None)
+            starts = []
+            contains = []
 
-            listbox.bind("<Return>", lambda e: accept_selection(listbox.curselection()[0]))
-            listbox.bind("<Double-Button-1>", lambda e: accept_selection(listbox.curselection()[0]))
+            for name in self.possible_illustrators:
+                n = name.lower()
+                if n.startswith(text_norm):
+                    starts.append(name)
+                elif text_norm in n:
+                    contains.append(name)
 
-            entry.bind(
-                "<Return>",
-                lambda e: self.validate_and_save(editor, path, illustrator_var.get())
-                if illustrator_var.get().strip() else None
+            matches = sorted(starts) + sorted(contains)
+
+            if not matches:
+                listbox.place_forget()
+                return
+
+            for name in matches:
+                listbox.insert(tk.END, name)
+
+            x = entry.winfo_rootx() - editor.winfo_rootx()
+            y = entry.winfo_rooty() - editor.winfo_rooty() + entry.winfo_height()
+            listbox.place(x=x, y=y, width=entry.winfo_width())
+
+        def accept_selection(index=0):
+            if listbox.size() == 0:
+                return
+            illustrator_var.set(listbox.get(index))
+            listbox.place_forget()
+            entry.focus_set()
+            entry.icursor(tk.END)
+
+        illustrator_var.trace_add("write", update_autocomplete)
+
+        entry.bind("<Down>", lambda e: listbox.focus_set() if listbox.winfo_ismapped() else None)
+        entry.bind("<Tab>", lambda e: (accept_selection(0), "break")[1] if listbox.winfo_ismapped() else None)
+
+        listbox.bind("<Return>", lambda e: accept_selection(listbox.curselection()[0]))
+        listbox.bind("<Double-Button-1>", lambda e: accept_selection(listbox.curselection()[0]))
+
+        entry.bind(
+            "<Return>",
+            lambda e: self.validate_and_save(editor, path, illustrator_var.get())
+            if illustrator_var.get().strip() else None
+        )
+
+        illustrator_var.trace_add(
+            "write",
+            lambda *_: save_btn.config(
+                state="normal" if illustrator_var.get().strip() else "disabled"
             )
+        )
 
-            illustrator_var.trace_add(
-                "write",
-                lambda *_: save_btn.config(
-                    state="normal" if illustrator_var.get().strip() else "disabled"
-                )
-            )
-        elif mode == "":
-            print("Not implemented")
-            return
     # ---------- ACTIONS ----------
-    def skip_card(self, editor, mode):
+    def skip_card(self, editor):
         editor.destroy()
         self.current_index += 1
-        self.open_card_editor(mode = mode)
+        self.open_card_editor()
 
     def validate_and_save(self, editor, path, illustrator):
-        illustrator_norm = normalize_illustrator(illustrator)
+        #illustrator_norm = normalize_illustrator(illustrator)
 
-        if self.possible_illustrators and illustrator_norm not in self.possible_illustrators:
-            self.show_unknown_illustrator_warning(editor, path, illustrator)
-            return
+        #if self.possible_illustrators and illustrator_norm not in self.possible_illustrators:
+        #    self.show_unknown_illustrator_warning(editor, path, illustrator)
+        #    return
 
-        self.save_illustrator(editor, path, illustrator)
+        self.save_retreat_cost(editor, path, illustrator)
 
-    def show_unknown_illustrator_warning(self, editor, path, illustrator):
+    '''def show_unknown_illustrator_warning(self, editor, path, illustrator):
         warning = tk.Toplevel(editor)
         warning.title("Unknown illustrator")
         warning.transient(editor)
@@ -503,51 +466,101 @@ class CardInspectorApp(tk.Tk):
             text="Confirm",
             command=lambda: (warning.destroy(), self.save_illustrator(editor, path, illustrator))
         ).pack(side="right", padx=10)
-
-    def save_illustrator(self, editor, path, illustrator):
-        illustratorMode = "Illustrators"
+'''
+    def save_retreat_cost(self, editor, path, RC):
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
+            #print("ORIGINAL FILE: ", content)
 
-        # 1️⃣ Locate rarity and indentation
-        rarity_match = re.search(r"\n(\s*)rarity\s*:", content)
-        if not rarity_match:
-            messagebox.showerror("Error", "Could not locate rarity field")
-            return
-
-        indent = rarity_match.group(1)
-        escaped_illustrator = illustrator.replace("\\", "\\\\").replace('"', '\\"')
-        illustrator_line = f'\n{indent}illustrator: "{escaped_illustrator}",'
+        # 1️⃣ Locate thirdParty and indentation
+        chosen_regex = "thirdParty"
+        field_match = re.search(r"\n(\s*)thirdParty\s*:", content)
+        if not field_match:
+            #messagebox.showerror("Error", "Could not locate thirdParty field")
+            print("Error, Could not locate thirdParty field, trying attacks")
+            field_match = re.search(r"\n(\s*)attacks\s*:", content)
+            chosen_regex = "attacks"
+            if not field_match:
+                messagebox.showerror("Error", "Could not locate attacks field")
+                print("Error, Could not locate attacks field")
+                return
+#attacks: [
+        #print(field_match)
+        indent = field_match.group(1)
+        RC_line = f'{indent}retreat: {RC},'
 
         # 2️⃣ If illustrator already exists → overwrite it
-        if re.search(r"\n\s*illustrator\s*:\s*['\"].*?['\"],?", content):
+        if re.search(r"\n\s*retreat\s*:\s*['\"].*?['\"],?", content):
             content = re.sub(
-                r"\n(\s*)illustrator\s*:\s*['\"].*?['\"],?",
-                f"\n{illustrator_line}",
+                r"\n(\s*)retreat\s*:\s*,?",
+                f"\n{RC_line}",
                 content,
                 count=1
             )
         # 3️⃣ Otherwise → insert illustrator before rarity
         else:
+            key = "attacks" if chosen_regex == "attacks" else "thirdParty"
             content = re.sub(
-                r"\n(\s*rarity\s*:)",
-                f"\n{illustrator_line}\n\\1",
+                rf"\n(\s*)({key}\s*:)",
+                r"\n\1" + RC_line + r"\n\1\2",
                 content,
                 count=1
             )
 
+
         # 4️⃣ Write file back
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
-
+        #print("CONTENT TO REPLACE: ", content)
         editor.destroy()
         self.current_index += 1
-        self.open_card_editor(mode = illustratorMode)
+        self.open_card_editor()
 
     # ---------- UTIL ----------
+    '''@staticmethod
+    def missing_retreat(content):
+        return not re.search(r"retreat\s*:", content)
+    '''
+    #Simple version:
+    '''def missing_retreat(content: str) -> bool:
+    return (
+        not re.search(r"\bretreat\s*:", content)
+        and re.search(r"\bcategory\s*:\s*['\"]Pokemon['\"]", content)
+    )'''
     @staticmethod
-    def missing_illustrator(content):
-        return not re.search(r"illustrator\s*:", content) or re.search(r"illustrator\s*:\s*['\"]\s*['\"]", content)
+    def missing_retreat(content: str) -> bool:
+        """
+        Returns True if:
+        - retreat is NOT present
+        - category exists AND is "Pokemon"
+
+        Debug version:
+        - Prints sub-condition results
+        - Raises an error if category is missing entirely
+        """
+
+        # --- Check retreat ---
+        retreat_present = bool(re.search(r"\bretreat\s*:", content))
+
+        # --- Check category line existence ---
+        category_match = re.search(
+            r"\bcategory\s*:\s*['\"]([^'\"]+)['\"]",
+            content
+        )
+
+        if not category_match:
+            # Hard fail: this should never happen in normal card files
+            raise RuntimeError("❌ No category field found in file")
+
+        category_value = category_match.group(1)
+        is_pokemon = category_value == "Pokemon"
+
+        # --- Debug output ---
+        print(f"retreat present: {retreat_present}")
+        print(f"is pokemon: {is_pokemon}")
+
+        # --- Final decision ---
+        return (not retreat_present) and is_pokemon
 
     @staticmethod
     def extract_card_id(content, set_id, filename):
@@ -556,9 +569,8 @@ class CardInspectorApp(tk.Tk):
 
 
 # ---------- RUN ----------
-async def run_tcgDex_database_helper_GUI_async():
+async def run_tcgDex_database_helper_GUI_async_RC():
 # Initialize API once
-    print("MODE IS : ", MODE)
     api = TCGdex(LANGUAGE)
     if IS_LOCAL_ENDPOINT:
         api = api.setEndpoint(LOCAL_ENDPOINT) ## Use local TCGdex instance

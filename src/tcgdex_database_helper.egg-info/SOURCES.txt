@@ -5,10 +5,11 @@ src/tcgdex_database_helper/__main__.py
 src/tcgdex_database_helper/config.py
 src/tcgdex_database_helper/count_cards_by_illustrator.py
 src/tcgdex_database_helper/main.py
-src/tcgdex_database_helper/tcgDex-database-illustrator.py
 src/tcgdex_database_helper/tcgDex_database_helper_GUI.py
 src/tcgdex_database_helper.egg-info/PKG-INFO
 src/tcgdex_database_helper.egg-info/SOURCES.txt
 src/tcgdex_database_helper.egg-info/dependency_links.txt
 src/tcgdex_database_helper.egg-info/requires.txt
 src/tcgdex_database_helper.egg-info/top_level.txt
+src/tcgdex_database_helper/helper_local_scripts/attack_matching.py
+src/tcgdex_database_helper/helper_local_scripts/count_cards.py
