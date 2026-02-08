@@ -24,3 +24,26 @@ pokemon_attacks_registry.csv
 series_sets_release_dates.csv
 REVIEWED_missing_images_stats.json
 assets/images/server/
+assets/img_scrape/
+assets/img_scrape_tcgclctr/
+assets/img_scrape_tcgclctr copy/
+completed_series.txt
+completed_sets.txt
+export_data_1.json
+export_data_end.json
+export_data_partial_error_1.json
+export_data_partial_error_2.json
+export_data_partial_error_3.json
+export_data_partial_error_4.json
+export_data_partial_error_5.json
+export_data_partial_error_6.json
+export_data_test_merge.json
+export_data.json
+missing_images_list_3.json
+missing_images_list_modified.json
+missing_images_list.json
+missing_images_stats.json
+missing_local_images_list.json
+pokemon_japanese_names.csv
+response.json
+test.html
