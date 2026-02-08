@@ -65,62 +65,7 @@ def normalize_illustrator(name: str) -> str:
     name = re.sub(r"\s+", " ", name)
     return name
 # -------------------------------
-# --------LIMITLESS FETCH---------
-#---limitless---
-def fetch_limitless_card_image(language: str, card_number: str, set_id: str | None = None) -> Image.Image | None:
-    """
-    Fetch a card image from Limitless TCG.
-    Returns a PIL.Image or None.
-    """
-    try:
-        search_terms = f"%21set%3A{set_id}"##TODO:FUGLY
-        if language == "ja":
-            search_terms += f"+lang%3Ajp" ##TODO:FUGLY
-        else:
-            search_terms += f"+lang%3Aen" ##TODO:FUGLY
-        search_terms += f"+n%3A{card_number}"##TODO:FUGLY
-        search_url = f"https://limitlesstcg.com/cards?q={search_terms}"
-        if NO_SSL_VERIFICATION:
-            r = requests.get(search_url, timeout=20, verify=False)
-        else:
-            r = requests.get(search_url, timeout=20)
 
-        print("First request status code: ", r.status_code)
-
-        if r.status_code != 200:
-            return None
-        print(r.content)
-        soup = BeautifulSoup(r.text, "html.parser")
-        
-        # First card result
-        r_img = None
-        img_url = soup.find_all("div", class_="card-search-grid")[0].find_all("a")[0].find_all("img")[0].attrs["src"] #TODO: FUGLY
-        print("Search_div: ", img_url)
-        if NO_SSL_VERIFICATION:
-            r_img = requests.get(img_url, timeout=20, verify=False)
-        else:
-            r_img = requests.get(img_url, timeout=20)
-        if r_img.status_code != 200:
-            return None
-
-        return Image.open(BytesIO(r_img.content)).resize((600, 840))
- 
-    except Exception as e:
-        print(f"⚠️ Limitless fallback failed: {e}")
-        return None
-
-
-
-def get_limitless_fallback_image(language, card ) -> Image.Image | None:
-    """
-    Wrapper used by the GUI.
-    """
-    #print("get_limitless_fallback_image -> card: ", card)
-    return fetch_limitless_card_image(
-        language=language,
-        set_id=card.set.id,
-        card_number=card.localId
-    )
 # ---------- GUI APP ----------
 class CardInspectorApp(tk.Tk):
     def __init__(self, api):
@@ -365,70 +310,7 @@ class CardInspectorApp(tk.Tk):
         save_btn.pack(side="right")
 
         # ---------- AUTOCOMPLETE ----------
-        listbox = tk.Listbox(editor, height=6)
-        listbox.place_forget()
-
-        def update_autocomplete(*_):
-            text = illustrator_var.get()
-            listbox.delete(0, tk.END)
-
-            if len(text) < AUTOCOMPLETE_MIN_CHARS:
-                listbox.place_forget()
-                return
-
-            text_norm = normalize_illustrator(text).lower()
-
-            starts = []
-            contains = []
-
-            for name in self.possible_illustrators:
-                n = name.lower()
-                if n.startswith(text_norm):
-                    starts.append(name)
-                elif text_norm in n:
-                    contains.append(name)
-
-            matches = sorted(starts) + sorted(contains)
-
-            if not matches:
-                listbox.place_forget()
-                return
-
-            for name in matches:
-                listbox.insert(tk.END, name)
-
-            x = entry.winfo_rootx() - editor.winfo_rootx()
-            y = entry.winfo_rooty() - editor.winfo_rooty() + entry.winfo_height()
-            listbox.place(x=x, y=y, width=entry.winfo_width())
-
-        def accept_selection(index=0):
-            if listbox.size() == 0:
-                return
-            illustrator_var.set(listbox.get(index))
-            listbox.place_forget()
-            entry.focus_set()
-            entry.icursor(tk.END)
-
-        illustrator_var.trace_add("write", update_autocomplete)
-
-        entry.bind("<Down>", lambda e: listbox.focus_set() if listbox.winfo_ismapped() else None)
-        entry.bind("<Tab>", lambda e: (accept_selection(0), "break")[1] if listbox.winfo_ismapped() else None)
-
-        listbox.bind("<Return>", lambda e: accept_selection(listbox.curselection()[0]))
-        listbox.bind("<Double-Button-1>", lambda e: accept_selection(listbox.curselection()[0]))
-
-        entry.bind(
-            "<Return>",
-            lambda e: self.validate_and_save(editor, path, illustrator_var.get())
-            if illustrator_var.get().strip() else None
-        )
-
-        illustrator_var.trace_add(
-            "write",
-            lambda *_: save_btn.config(
-                state="normal" if illustrator_var.get().strip() else "disabled"
-            )
-        )
+        
 
     # ---------- ACTIONS ----------
     def skip_card(self, editor):
@@ -445,28 +327,6 @@ class CardInspectorApp(tk.Tk):
 
         self.save_retreat_cost(editor, path, illustrator)
 
-    '''def show_unknown_illustrator_warning(self, editor, path, illustrator):
-        warning = tk.Toplevel(editor)
-        warning.title("Unknown illustrator")
-        warning.transient(editor)
-        warning.grab_set()
-
-        ttk.Label(
-            warning,
-            text=f"Illustrator “{illustrator}” was not found.\nSave anyway?",
-            justify="center"
-        ).pack(padx=20, pady=20)
-
-        btns = ttk.Frame(warning)
-        btns.pack(pady=10)
-
-        ttk.Button(btns, text="Cancel", command=warning.destroy).pack(side="left", padx=10)
-        ttk.Button(
-            btns,
-            text="Confirm",
-            command=lambda: (warning.destroy(), self.save_illustrator(editor, path, illustrator))
-        ).pack(side="right", padx=10)
-'''
     def save_retreat_cost(self, editor, path, RC):
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -517,16 +377,6 @@ class CardInspectorApp(tk.Tk):
         self.open_card_editor()
 
     # ---------- UTIL ----------
-    '''@staticmethod
-    def missing_retreat(content):
-        return not re.search(r"retreat\s*:", content)
-    '''
-    #Simple version:
-    '''def missing_retreat(content: str) -> bool:
-    return (
-        not re.search(r"\bretreat\s*:", content)
-        and re.search(r"\bcategory\s*:\s*['\"]Pokemon['\"]", content)
-    )'''
     @staticmethod
     def missing_retreat(content: str) -> bool:
         """
