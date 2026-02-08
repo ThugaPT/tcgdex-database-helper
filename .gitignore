@@ -22,3 +22,5 @@ src/tcgdex_database_helper/helper_local_scripts/
 attacks/
 pokemon_attacks_registry.csv
 series_sets_release_dates.csv
+REVIEWED_missing_images_stats.json
+assets/images/server/
