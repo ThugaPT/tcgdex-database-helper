@@ -77,6 +77,7 @@ class CardInspectorApp(tk.Tk):
     _MISSING_FIELD_CHECKS = {
         "Illustrators": lambda c: CardInspectorApp.missing_field_illustrator(c),
         "RetreatCost": lambda c: CardInspectorApp.missing_field_retreat_cost(c),
+        "HP": lambda c: CardInspectorApp.missing_field_hp(c),
     }
     def __init__(self, api):
         super().__init__()
@@ -85,6 +86,8 @@ class CardInspectorApp(tk.Tk):
             mainWindowTitle = "TCGDex Illustrator Editor"
         if MODE == "RetreatCost":
             mainWindowTitle = "TCGDex Retreat Cost Editor"
+        if MODE == "HP":
+            mainWindowTitle = "TCGDex HP Editor"
         
         self.title(mainWindowTitle)
         self.geometry("480x260")
@@ -158,6 +161,8 @@ class CardInspectorApp(tk.Tk):
                 scanButtonLabel= "Start illustrator review"
             case "RetreatCost":
                 scanButtonLabel= "Start retrat cost review"
+            case "HP":
+                scanButtonLabel= "Start HP review"
             case _:
                 print("Unknown mode")
                 return
@@ -237,6 +242,8 @@ class CardInspectorApp(tk.Tk):
             noMissingText = "No cards missing illustrator 🎉"
         if MODE == "RetreatCost":
             noMissingText = "No cards missing Retreat Cost 🎉"
+        if MODE == "HP":
+            noMissingText = "No cards missing HP 🎉"
         if not self.missing_cards:
             messagebox.showinfo("Done", noMissingText)
             return
@@ -249,6 +256,8 @@ class CardInspectorApp(tk.Tk):
             completeMessageText = "All missing illustrators processed 🎉"
         if mode == "RetreatCost":
             completeMessageText = "All missing retrat costs processed 🎉"
+        if mode == "HP":
+            completeMessageText = "All missing HP processed 🎉"
         if self.current_index >= len(self.missing_cards):
             messagebox.showinfo("Done", completeMessageText)
             return
@@ -326,6 +335,8 @@ class CardInspectorApp(tk.Tk):
             editorLabel = "Illustrator"
         if mode == "RetreatCost":
             editorLabel = "Retreat Cost"
+        if mode == "HP":
+            editorLabel = "HP"
         ttk.Label(editor, text=editorLabel).pack(pady=(10, 5))
         input_frame = ttk.Frame(editor)
         input_frame.pack(fill="x", padx=20)
@@ -348,7 +359,9 @@ class CardInspectorApp(tk.Tk):
             command=lambda: self.validate_and_save(editor, path, field_var.get())
         )
         save_btn.pack(side="right")
-
+        entry.bind("<Control-Return>",
+                lambda e: self.skip_card(editor, mode)
+            )
 
         if mode == "Illustrators":
             # ----------ILLUSTRATOR AUTOCOMPLETE ----------
@@ -409,7 +422,6 @@ class CardInspectorApp(tk.Tk):
                 lambda e: self.validate_and_save(editor, path, field_var.get())
                 if field_var.get().strip() else None
             )
-
             field_var.trace_add(
                 "write",
                 lambda *_: save_btn.config(
@@ -417,6 +429,21 @@ class CardInspectorApp(tk.Tk):
                 )
             )
         elif mode == "RetreatCost":
+            print("Not yet ready for productive environment")
+            entry.bind(
+                "<Return>",
+                lambda e: self.validate_and_save(editor, path, field_var.get())
+                if field_var.get().strip() else None
+            )
+            def update_save_button(*_):
+                value = field_var.get().strip()
+                if value.isdigit():
+                    save_btn.state(["!disabled"])
+                else:
+                    save_btn.state(["disabled"])
+            field_var.trace_add("write", update_save_button)
+
+        elif mode == "HP":
             print("Not yet ready for productive environment")
             entry.bind(
                 "<Return>",
@@ -453,6 +480,9 @@ class CardInspectorApp(tk.Tk):
 
         if MODE == "RetreatCost":
             self.save_retreat_cost(editor, path, fieldValue)
+        
+        if MODE == "HP":
+            self.save_hp(editor, path, fieldValue)
 
     def show_unknown_illustrator_warning(self, editor, path, illustrator):
         warning = tk.Toplevel(editor)
@@ -526,6 +556,65 @@ class CardInspectorApp(tk.Tk):
         self.current_index += 1
         self.open_card_editor(mode = retreatCostMode)
 
+    def save_hp(self, editor, path, fieldValue):
+        HPMode = "HP"
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+            #print("ORIGINAL FILE: ", content)
+
+        # 1️⃣ Locate thirdParty and indentation
+        chosen_regex = "types"
+        field_match = re.search(r"\n(\s*)types\s*:", content)
+        if not field_match:
+            #messagebox.showerror("Error", "Could not locate thirdParty field")
+            print("Error, Could not locate types field, trying evolveFrom")
+            field_match = re.search(r"\n(\s*)evolveFrom\s*:", content)
+            if path == "/Users/sfreire/Downloads/Workspace_local_API/cards-database/data/Trainer kits/HS trainer Kit (Raichu)/19.ts":
+                print(content)
+            chosen_regex = "evolveFrom"
+            if not field_match: #stage
+                print("Error, Could not locate types evolveFrom, trying stage")
+                field_match = re.search(r"\n(\s*)stage\s*:", content)
+                chosen_regex = "stage"
+                if not field_match:
+                    messagebox.showerror("Error", "Could not locate stage field")
+                    print("Error, Could not locate stage field")
+                    return
+#attacks: [
+        #print(field_match)
+        indent = field_match.group(1)
+        HP_line = f'{indent}hp: {fieldValue},'
+
+        # 2️⃣ If illustrator already exists → overwrite it
+        if re.search(r"\n\s*hp\s*:\s*['\"].*?['\"],?", content):
+            content = re.sub(
+                r"\n(\s*)hp\s*:\s*,?",
+                f"\n{HP_line}",
+                content,
+                count=1
+            )
+        # 3️⃣ Otherwise → insert illustrator before rarity
+        else:
+            key = {
+                "types": "types",
+                "evolveFrom": "evolveFrom",
+            }.get(chosen_regex, "stage")            
+            content = re.sub(
+                rf"\n(\s*)({key}\s*:)",
+                r"\1" + HP_line + r"\n\1\2",
+                content,
+                count=1
+            )
+
+
+        # 4️⃣ Write file back
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        #print("CONTENT TO REPLACE: ", content)
+        editor.destroy()
+        self.current_index += 1
+        self.open_card_editor(mode = HPMode)
+
     def save_illustrator(self, editor, path, fieldValue):
         illustratorMode = "Illustrators"
         with open(path, "r", encoding="utf-8") as f:
@@ -593,6 +682,30 @@ class CardInspectorApp(tk.Tk):
 
         # --- Final decision ---
         return (not retreat_present) and is_pokemon
+    
+    @staticmethod
+    def missing_field_hp(content)->bool:
+        hp_present = bool(re.search(r"\bhp\s*:", content))
+
+        # --- Check category line existence ---
+        category_match = re.search(
+            r"\bcategory\s*:\s*['\"]([^'\"]+)['\"]",
+            content
+        )
+
+        if not category_match:
+            # Hard fail: this should never happen in normal card files
+            raise RuntimeError("❌ No category field found in file")
+
+        category_value = category_match.group(1)
+        is_pokemon = category_value == "Pokemon"
+
+        # --- Debug output ---
+        #print(f"HP present: {retreat_present}")
+        #print(f"is pokemon: {is_pokemon}")
+
+        # --- Final decision ---
+        return (not hp_present) and is_pokemon
     
     @staticmethod
     def missing_field(content, mode) -> bool:

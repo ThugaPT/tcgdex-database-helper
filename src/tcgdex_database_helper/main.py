@@ -80,6 +80,8 @@ def main():
         runMode = "Illustrators"
     if args.mode == '2':
         runMode = "RetreatCost"
+    if args.mode == '3':
+        runMode = "HP"
     configure_tcgDex_database_helper_GUI(
         database_root_en=paths["database_root_en"],
         database_root_ja=paths["database_root_ja"],
